@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apna</title>
+    <style>
+        body { background-color: #121212; color: #ffffff; font-family: Arial, sans-serif; margin: 0; padding-bottom: 70px; }
+        .header { background: #1f1f1f; padding: 15px; text-align: center; border-bottom: 2px solid #ffd700; position: sticky; top: 0; z-index: 100; }
+        .container { padding: 15px; max-width: 400px; margin: auto; }
+        .card { background: #1e1e1e; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #333; }
+        .btn { background: #ffd700; color: #000; border: none; padding: 12px; width: 100%; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; font-size: 16px; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; background: #2c2c2c; border: 1px solid #444; color: #fff; border-radius: 5px; box-sizing: border-box; font-size: 15px; }
+        .hidden { display: none; }
+        .balance { color: #ffd700; font-size: 18px; font-weight: bold; }
+        .nav-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: #1a1a1a; display: flex; border-top: 1px solid #333; z-index: 1000; }
+        .nav-item { flex: 1; text-align: center; padding: 12px 0; color: #aaa; font-size: 13px; cursor: pointer; }
+        .nav-item.active { color: #ffd700; font-weight: bold; background: #222; }
+        .upi-box { background: #2c2c2c; padding: 10px; text-align: center; font-weight: bold; color: #ffd700; border-radius: 5px; margin: 10px 0; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2 style="margin:0;">अपना (Apna)</h2>
+        <div id="userWallet" class="hidden" style="margin-top: 5px;">बैलेंस: <span class="balance" id="coinBalance">0</span> कॉइन</div>
+    </div>
+    <div class="container">
+        <div id="authSection" class="card">
+            <h3 id="authTitle" style="margin-top:0;">लॉगिन करें</h3>
+            <input type="text" id="mobile" placeholder="मोबाइल नंबर">
+            <input type="password" id="password" placeholder="पासवर्ड">
+            <button class="btn" onclick="handleAuth()" id="authBtn">लॉगिन</button>
+            <p style="text-align: center; cursor: pointer; color: #ffd700; margin-top: 15px;" onclick="toggleAuthMode()" id="switchText">नया खाता बनाएं (Register)</p>
+        </div>
+        <div id="tab-game" class="tab-content hidden">
+            <div class="card">
+                <h3 style="margin-top:0;">🎮 फर्रुखाबाद मार्केट</h3>
+                <p style="color: #aaa; font-size: 13px;">रेट: जोड़ी = 95x | सिंगल = 9.5x</p>
+                <select id="betType" onchange="updateNumberPlaceholder()">
+                    <option value="jodi">जोड़ी (00 से 99)</option>
+                    <option value="single">सिंगल अंक (0 से 9)</option>
+                </select>
+                <input type="number" id="betNumber" placeholder="नंबर डालें (जैसे 59)">
+                <input type="number" id="betAmount" placeholder="कॉइन डालें (Amount)">
+                <button class="btn" onclick="placeBet()">दांव लगाएं</button>
+            </div>
+        </div>
+        <div id="tab-deposit" class="tab-content hidden">
+            <div class="card">
+                <h3 style="margin-top:0;">💰 पैसा जमा करें (Deposit)</h3>
+                <p style="font-size: 13px; color: #aaa;">नीचे दिए गए UPI पर पेमेंट करके स्क्रीनशॉट अपलोड करें:</p>
+                <div class="upi-box" id="upiText">yourname@upi</div>
+                <button class="btn" style="background: #333; color: #ffd700; padding: 8px; font-size: 14px;" onclick="copyUpi()">UPI ID कॉपी करें</button>
+                <input type="number" id="depositAmount" placeholder="कितना पैसा भेजा? (₹)" style="margin-top: 15px;">
+                <input type="file" id="screenshotFile" accept="image/*" style="background: none; border: none; padding: 10px 0;">
+                <button class="btn" onclick="sendDepositRequest()">डिपॉजिट रिक्वेस्ट भेजें</button>
+            </div>
+        </div>
+        <div id="tab-profile" class="tab-content hidden">
+            <div class="card" style="text-align: center;">
+                <h3>👤 यूजर अकाउंट</h3>
+                <p id="profileMobile" style="color: #aaa;"></p>
+                <button class="btn" style="background: #ff4d4d; color: #fff; margin-top: 20px;" onclick="logout()">लॉग आउट करें</button>
+            </div>
+        </div>
+    </div>
+    <div id="bottomNav" class="nav-bar hidden">
+        <div class="nav-item active" onclick="switchTab('game', this)">🎮 गेम</div>
+        <div class="nav-item" onclick="switchTab('deposit', this)">💰 डिपॉजिट</div>
+        <div class="nav-item" onclick="switchTab('profile', this)">👤 प्रोफाइल</div>
+    </div>
+    <script>
+        const BACKEND_URL = "https://apnabackend-7icd.onrender.com";
+        let isRegisterMode = false;
+        let token = localStorage.getItem('token') || '';
+
+        if (token) {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('tab-game').classList.remove('hidden');
+            document.getElementById('userWallet').classList.remove('hidden');
+            document.getElementById('bottomNav').classList.remove('hidden');
+            document.getElementById('profileMobile').innerText = "मोबाइल: " + (localStorage.getItem('mobile') || '');
+        }
+
+        function toggleAuthMode() {
+            isRegisterMode = !isRegisterMode;
+            document.getElementById('authTitle').innerText = isRegisterMode ? "नया खाता बनाएं" : "लॉगिन करें";
+            document.getElementById('authBtn').innerText = isRegisterMode ? "रजिस्टर करें" : "लॉगिन";
+            document.getElementById('switchText').innerText = isRegisterMode ? "पहले से खाता है? लॉगिन करें" : "नया खाता बनाएं (Register)";
+        }
+
+        async function handleAuth() {
+            const mobile = document.getElementById('mobile').value;
+            const password = document.getElementById('password').value;
+            const endpoint = isRegisterMode ? '/api/register' : '/api/login';
+
+            try {
+                const res = await fetch(BACKEND_URL + endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mobile, password })
+                });
+                const data = await res.json();
+                alert(data.message);
+
+                if (!isRegisterMode && data.success) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('coins', data.coins);
+                    localStorage.setItem('mobile', mobile);
+                    location.reload();
+                } else if (isRegisterMode && data.success) {
+                    toggleAuthMode();
+                }
+            } catch (err) {
+                alert('सर्वर से कनेक्ट करने में समस्या आई।');
+            }
+        }
+
+        function switchTab(tabName, element) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.remove('hidden');
+            element.classList.add('active');
+        }
+
+        function updateNumberPlaceholder() {
+            const type = document.getElementById('betType').value;
+            document.getElementById('betNumber').placeholder = type === 'jodi' ? "नंबर डालें (00-99)" : "अंक डालें (0-9)";
+        }
+
+        function copyUpi() {
+            const upiText = document.getElementById('upiText').innerText;
+            navigator.clipboard.writeText(upiText);
+            alert('UPI ID कॉपी हो गई!');
+        }
+
+        async function placeBet() {
+            const betType = document.getElementById('betType').value;
+            const number = document.getElementById('betNumber').value;
+            const amount = Number(document.getElementById('betAmount').value);
+            const date = new Date().toISOString().split('T')[0];
+
+            if (!number || !amount) return alert('कृपया नंबर और अमाउंट दोनों भरें!');
+
+            const res = await fetch(BACKEND_URL + '/api/bet', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                body: JSON.stringify({ gameName: 'Farrukhabad', betType, number, amount, date })
+            });
+            const data = await res.json();
+            alert(data.message);
+            if(data.success) location.reload();
+        }
+
+        async function sendDepositRequest() {
+            const amount = Number(document.getElementById('depositAmount').value);
+            const fileInput = document.getElementById('screenshotFile');
+
+            if(!amount || fileInput.files.length === 0) return alert('अमाउंट और पेमेंट का स्क्रीनशॉट दोनों ज़रूरी हैं!');
+
+            const reader = new FileReader();
+            reader.readAsDataURL(fileInput.files[0]);
+            reader.onload = async function () {
+                const res = await fetch(BACKEND_URL + '/api/deposit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                    body: JSON.stringify({ amount, screenshotBase64: reader.result })
+                });
+                const data = await res.json();
+                alert(data.message);
+                if(data.success) {
+                    document.getElementById('depositAmount').value = '';
+                    fileInput.value = '';
+                }
+            };
+        }
+
+        function logout() {
+            localStorage.clear();
+            location.reload();
+        }
+    </script>
+</body>
+</html>
