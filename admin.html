@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <style>
+        body { background-color: #0f0f0f; color: #fff; font-family: Arial, sans-serif; padding: 20px; }
+        .card { background: #1a1a1a; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; }
+        input, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; background: #2a2a2a; color: #fff; border: 1px solid #444; border-radius: 4px; }
+        button { background: #ffd700; color: #000; font-weight: bold; cursor: pointer; }
+        .deposit-item { background: #252525; padding: 10px; margin-top: 10px; border-radius: 5px; }
+        img { max-width: 100%; height: auto; margin-top: 10px; border-radius: 4px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <h2>🔒 सीक्रेट एडमिन पैनल</h2>
+    <div id="adminLoginCard" class="card">
+        <h3>एडमिन लॉगिन</h3>
+        <input type="text" id="adminMobile" placeholder="मोबाइल नंबर">
+        <input type="password" id="adminPassword" placeholder="पासवर्ड">
+        <button onclick="adminLogin()">लॉगिन करें</button>
+    </div>
+    <div id="adminDashboard" class="card hidden">
+        <h3>💰 पेंडिंग डिपॉजिट रिक्वेस्ट</h3>
+        <div id="pendingDepositsList">लोड हो रहा है...</div>
+        <hr style="margin: 20px 0; border-color: #444;">
+        <h3>🎯 रिजल्ट घोषित करें</h3>
+        <input type="text" id="gameName" placeholder="गेम का नाम (जैसे Farrukhabad)" value="Farrukhabad">
+        <input type="date" id="resultDate">
+        <input type="text" id="winningNumber" placeholder="जीतने वाली जोड़ी (जैसे 59)">
+        <button onclick="declareResult()" style="background: #ff4d4d; color: #fff;">रिजल्ट डिक्लेयर करें & पेआउट बांटें</button>
+    </div>
+    <script>
+        const BACKEND_URL = "https://apnabackend-7icd.onrender.com";
+        let adminToken = localStorage.getItem('adminToken') || '';
+
+        if(adminToken) {
+            document.getElementById('adminLoginCard').classList.add('hidden');
+            document.getElementById('adminDashboard').classList.remove('hidden');
+            loadPendingDeposits();
+        }
+
+        async function adminLogin() {
+            const mobile = document.getElementById('adminMobile').value;
+            const password = document.getElementById('adminPassword').value;
+            const res = await fetch(BACKEND_URL + '/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mobile, password })
+            });
+            const data = await res.json();
+            if(data.success && data.isAdmin) {
+                localStorage.setItem('adminToken', data.token);
+                alert('एडमिन लॉगिन सफल!');
+                location.reload();
+            } else {
+                alert('यह अकाउंट एडमिन नहीं है या पासवर्ड गलत है!');
+            }
+        }
+
+        async function loadPendingDeposits() {
+            const res = await fetch(BACKEND_URL + '/api/admin/pending-deposits', {
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('adminToken') }
+            });
+            const data = await res.json();
+            const listDiv = document.getElementById('pendingDepositsList');
+            listDiv.innerHTML = '';
+            if(data.deposits.length === 0) return listDiv.innerHTML = '<p>कोई पेंडिंग रिक्वेस्ट नहीं है।</p>';
+
+            data.deposits.forEach(dep => {
+                listDiv.innerHTML += `
+                    <div class="deposit-item">
+                        <p><b>यूज़र मोबाइल:</b> ${dep.userId ? dep.userId.mobile : 'Unknown'}</p>
+                        <p><b>अमाउंट:</b> ₹${dep.amount}</p>
+                        <img src="${dep.screenshotBase64}" alt="Payment Screenshot">
+                        <button onclick="approveDeposit('${dep._id}')" style="background: #4CAF50; color:#fff; margin-top:10px;">डिपॉजिट स्वीकृत करें (Approve)</button>
+                    </div>
+                `;
+            });
+        }
+
+        async function approveDeposit(depositId) {
+            const res = await fetch(BACKEND_URL + '/api/admin/approve-deposit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('adminToken') },
+                body: JSON.stringify({ depositId })
+            });
+            const data = await res.json();
+            alert(data.message);
+            loadPendingDeposits();
+        }
+
+        async function declareResult() {
+            const res = await fetch(BACKEND_URL + '/api/admin/declare-result', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('adminToken') },
+                body: JSON.stringify({ 
+                    gameName: document.getElementById('gameName').value, 
+                    date: document.getElementById('resultDate').value, 
+                    winningNumber: document.getElementById('winningNumber').value 
+                })
+            });
+            const data = await res.json();
+            alert(data.message);
+        }
+    </script>
+</body>
+</html>
