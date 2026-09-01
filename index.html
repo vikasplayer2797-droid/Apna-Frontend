@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -11,7 +12,7 @@
         .card { background: #1e1e1e; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #333; }
         .btn { background: #ffd700; color: #000; border: none; padding: 12px; width: 100%; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; font-size: 16px; }
         input, select { width: 100%; padding: 12px; margin: 8px 0; background: #2c2c2c; border: 1px solid #444; color: #fff; border-radius: 5px; box-sizing: border-box; font-size: 15px; }
-        .hidden { display: none; }
+        .hidden { display: none !important; }
         .balance { color: #ffd700; font-size: 18px; font-weight: bold; }
         .nav-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: #1a1a1a; display: flex; border-top: 1px solid #333; z-index: 1000; }
         .nav-item { flex: 1; text-align: center; padding: 12px 0; color: #aaa; font-size: 13px; cursor: pointer; }
@@ -25,6 +26,7 @@
         <div id="userWallet" class="hidden" style="margin-top: 5px;">बैलेंस: <span class="balance" id="coinBalance">0</span> कॉइन</div>
     </div>
     <div class="container">
+        <!-- Login/Register Section -->
         <div id="authSection" class="card">
             <h3 id="authTitle" style="margin-top:0;">लॉगिन करें</h3>
             <input type="text" id="mobile" placeholder="मोबाइल नंबर">
@@ -32,54 +34,93 @@
             <button class="btn" onclick="handleAuth()" id="authBtn">लॉगिन</button>
             <p style="text-align: center; cursor: pointer; color: #ffd700; margin-top: 15px;" onclick="toggleAuthMode()" id="switchText">नया खाता बनाएं (Register)</p>
         </div>
-        <div id="tab-game" class="tab-content hidden">
-            <div class="card">
-                <h3 style="margin-top:0;">🎮 फर्रुखाबाद मार्केट</h3>
-                <p style="color: #aaa; font-size: 13px;">रेट: जोड़ी = 95x | सिंगल = 9.5x</p>
-                <select id="betType" onchange="updateNumberPlaceholder()">
-                    <option value="jodi">जोड़ी (00 से 99)</option>
-                    <option value="single">सिंगल अंक (0 से 9)</option>
-                </select>
-                <input type="number" id="betNumber" placeholder="नंबर डालें (जैसे 59)">
-                <input type="number" id="betAmount" placeholder="कॉइन डालें (Amount)">
-                <button class="btn" onclick="placeBet()">दांव लगाएं</button>
+
+        <!-- Main Content Area (Hidden until logged in) -->
+        <div id="mainContent" class="hidden">
+            <!-- Game Tab -->
+            <div id="tab-game" class="tab-content">
+                <div class="card">
+                    <h3 style="margin-top:0;">🎮 फर्रुखाबाद मार्केट</h3>
+                    <p style="color: #aaa; font-size: 13px;">रेट: जोड़ी = 95x | सिंगल = 9.5x</p>
+                    <select id="betType" onchange="updateNumberPlaceholder()">
+                        <option value="jodi">जोड़ी (00 से 99)</option>
+                        <option value="single">सिंगल अंक (0 से 9)</option>
+                    </select>
+                    <input type="number" id="betNumber" placeholder="नंबर डालें (जैसे 59)">
+                    <input type="number" id="betAmount" placeholder="कॉइन डालें (Amount)">
+                    <button class="btn" onclick="placeBet()">दांव लगाएं</button>
+                </div>
             </div>
-        </div>
-        <div id="tab-deposit" class="tab-content hidden">
-            <div class="card">
-                <h3 style="margin-top:0;">💰 पैसा जमा करें (Deposit)</h3>
-                <p style="font-size: 13px; color: #aaa;">नीचे दिए गए UPI पर पेमेंट करके स्क्रीनशॉट अपलोड करें:</p>
-                <div class="upi-box" id="upiText">yourname@upi</div>
-                <button class="btn" style="background: #333; color: #ffd700; padding: 8px; font-size: 14px;" onclick="copyUpi()">UPI ID कॉपी करें</button>
-                <input type="number" id="depositAmount" placeholder="कितना पैसा भेजा? (₹)" style="margin-top: 15px;">
-                <input type="file" id="screenshotFile" accept="image/*" style="background: none; border: none; padding: 10px 0;">
-                <button class="btn" onclick="sendDepositRequest()">डिपॉजिट रिक्वेस्ट भेजें</button>
+
+            <!-- Deposit Tab -->
+            <div id="tab-deposit" class="tab-content hidden">
+                <div class="card">
+                    <h3 style="margin-top:0;">💰 पैसा जमा करें (Deposit)</h3>
+                    <p style="font-size: 13px; color: #aaa;">नीचे दिए गए UPI पर पेमेंट करके स्क्रीनशॉट अपलोड करें:</p>
+                    <div class="upi-box" id="upiText">yourname@upi</div>
+                    <button class="btn" style="background: #333; color: #ffd700; padding: 8px; font-size: 14px;" onclick="copyUpi()">UPI ID कॉपी करें</button>
+                    <input type="number" id="depositAmount" placeholder="कितना पैसा भेजा? (₹)" style="margin-top: 15px;">
+                    <input type="file" id="screenshotFile" accept="image/*" style="background: none; border: none; padding: 10px 0;">
+                    <button class="btn" onclick="sendDepositRequest()">डिपॉजिट रिक्वेस्ट भेजें</button>
+                </div>
             </div>
-        </div>
-        <div id="tab-profile" class="tab-content hidden">
-            <div class="card" style="text-align: center;">
-                <h3>👤 यूजर अकाउंट</h3>
-                <p id="profileMobile" style="color: #aaa;"></p>
-                <button class="btn" style="background: #ff4d4d; color: #fff; margin-top: 20px;" onclick="logout()">लॉग आउट करें</button>
+
+            <!-- Profile Tab -->
+            <div id="tab-profile" class="tab-content hidden">
+                <div class="card" style="text-align: center;">
+                    <h3>👤 यूजर अकाउंट</h3>
+                    <p id="profileMobile" style="color: #aaa;"></p>
+                    <button class="btn" style="background: #ff4d4d; color: #fff; margin-top: 20px;" onclick="logout()">लॉग आउट करें</button>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Bottom Navigation Bar (Hidden until logged in) -->
     <div id="bottomNav" class="nav-bar hidden">
         <div class="nav-item active" onclick="switchTab('game', this)">🎮 गेम</div>
         <div class="nav-item" onclick="switchTab('deposit', this)">💰 डिपॉजिट</div>
         <div class="nav-item" onclick="switchTab('profile', this)">👤 प्रोफाइल</div>
     </div>
+
     <script>
         const BACKEND_URL = "https://apnabackend-7icd.onrender.com";
         let isRegisterMode = false;
         let token = localStorage.getItem('token') || '';
 
-        if (token) {
-            document.getElementById('authSection').classList.add('hidden');
-            document.getElementById('tab-game').classList.remove('hidden');
-            document.getElementById('userWallet').classList.remove('hidden');
-            document.getElementById('bottomNav').classList.remove('hidden');
-            document.getElementById('profileMobile').innerText = "मोबाइल: " + (localStorage.getItem('mobile') || '');
+        function initApp() {
+            if (token) {
+                // User is logged in
+                document.getElementById('authSection').classList.add('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+                document.getElementById('userWallet').classList.remove('hidden');
+                document.getElementById('bottomNav').classList.remove('hidden');
+                document.getElementById('profileMobile').innerText = "मोबाइल: " + (localStorage.getItem('mobile') || '');
+                
+                // Show game tab by default
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+                document.getElementById('tab-game').classList.remove('hidden');
+                
+                // Fetch latest balance
+                fetchBalance();
+            } else {
+                // User is NOT logged in
+                document.getElementById('authSection').classList.remove('hidden');
+                document.getElementById('mainContent').classList.add('hidden');
+                document.getElementById('userWallet').classList.add('hidden');
+                document.getElementById('bottomNav').classList.add('hidden');
+            }
+        }
+        
+        async function fetchBalance() {
+            try {
+                // A secure way is to just call a lightweight endpoint or rely on what was saved during login. 
+                // For now, let's use the local storage value, but ideally you'd fetch it fresh.
+                const coins = localStorage.getItem('coins') || '0';
+                document.getElementById('coinBalance').innerText = coins;
+            } catch(e) {
+                console.error("Error fetching balance");
+            }
         }
 
         function toggleAuthMode() {
@@ -92,6 +133,12 @@
         async function handleAuth() {
             const mobile = document.getElementById('mobile').value;
             const password = document.getElementById('password').value;
+            
+            if(!mobile || !password) {
+                alert("मोबाइल नंबर और पासवर्ड भरें");
+                return;
+            }
+            
             const endpoint = isRegisterMode ? '/api/register' : '/api/login';
 
             try {
@@ -101,13 +148,15 @@
                     body: JSON.stringify({ mobile, password })
                 });
                 const data = await res.json();
-                alert(data.message);
+                
+                if(data.message) alert(data.message);
 
                 if (!isRegisterMode && data.success) {
                     localStorage.setItem('token', data.token);
                     localStorage.setItem('coins', data.coins);
                     localStorage.setItem('mobile', mobile);
-                    location.reload();
+                    token = data.token; // Update token variable
+                    initApp(); // Refresh UI without full reload
                 } else if (isRegisterMode && data.success) {
                     toggleAuthMode();
                 }
@@ -142,14 +191,27 @@
 
             if (!number || !amount) return alert('कृपया नंबर और अमाउंट दोनों भरें!');
 
-            const res = await fetch(BACKEND_URL + '/api/bet', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-                body: JSON.stringify({ gameName: 'Farrukhabad', betType, number, amount, date })
-            });
-            const data = await res.json();
-            alert(data.message);
-            if(data.success) location.reload();
+            try {
+                const res = await fetch(BACKEND_URL + '/api/bet', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                    body: JSON.stringify({ gameName: 'Farrukhabad', betType, number, amount, date })
+                });
+                const data = await res.json();
+                alert(data.message);
+                
+                // Optionally update balance locally if bet was successful, or fetch fresh balance
+                if(data.success) {
+                    let currentCoins = Number(localStorage.getItem('coins') || 0);
+                    localStorage.setItem('coins', currentCoins - amount);
+                    document.getElementById('coinBalance').innerText = currentCoins - amount;
+                    
+                    document.getElementById('betNumber').value = '';
+                    document.getElementById('betAmount').value = '';
+                }
+            } catch(e) {
+                alert("दांव लगाने में त्रुटि");
+            }
         }
 
         async function sendDepositRequest() {
@@ -161,24 +223,32 @@
             const reader = new FileReader();
             reader.readAsDataURL(fileInput.files[0]);
             reader.onload = async function () {
-                const res = await fetch(BACKEND_URL + '/api/deposit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-                    body: JSON.stringify({ amount, screenshotBase64: reader.result })
-                });
-                const data = await res.json();
-                alert(data.message);
-                if(data.success) {
-                    document.getElementById('depositAmount').value = '';
-                    fileInput.value = '';
+                try {
+                    const res = await fetch(BACKEND_URL + '/api/deposit', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                        body: JSON.stringify({ amount, screenshotBase64: reader.result })
+                    });
+                    const data = await res.json();
+                    alert(data.message);
+                    if(data.success) {
+                        document.getElementById('depositAmount').value = '';
+                        fileInput.value = '';
+                    }
+                } catch(e) {
+                     alert("रिक्वेस्ट भेजने में त्रुटि");
                 }
             };
         }
 
         function logout() {
             localStorage.clear();
-            location.reload();
+            token = '';
+            initApp(); // Reset UI without full reload
         }
+        
+        // Initialize app state on load
+        initApp();
     </script>
 </body>
 </html>
